@@ -3,7 +3,7 @@ import pandas as pd
 import pydeck as pdk
 
 # Load your data (replace with your file)
-df = pd.read_excel("your_file.xlsx")
+df = pd.read_excel("engine details.xlsx")
 
 # Clean column names if needed
 df.columns = df.columns.str.strip()
