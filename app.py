@@ -7,7 +7,7 @@ st.set_page_config(layout="wide")
 st.title("Bengaluru Region Engine Distribution")
 @st.cache_data
 def load_data():
-    df = pd.read_excel("engine details.xlsx", sheet_name="Sheet7")
+    df = pd.read_excel("engine details.xlsx", sheet_name="Sheet")
     df.columns = df.columns.str.strip()
     return df
 
