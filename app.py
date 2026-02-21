@@ -4,71 +4,54 @@ import pydeck as pdk
 
 st.set_page_config(layout="wide")
 
-st.title("Engine Distribution Map")
+st.title("Bengaluru Region Engine Distribution")
 
-# Load Excel from specific sheet
 @st.cache_data
 def load_data():
-    df = pd.read_excel("engine details.xlsx", sheet_name="CAMC")
+    df = pd.read_excel("engine details.xlsx", sheet_name="Sheet7")
     df.columns = df.columns.str.strip()
     return df
 
 df = load_data()
 
-# Sidebar Filters
-engine_filter = st.sidebar.multiselect(
-    "Select Engine Type",
-    df["Engine Type"].unique(),
-    default=df["Engine Type"].unique()
-)
+# Drop rows without coordinates
+df = df.dropna(subset=["Latitude", "Longitude"])
 
-cluster_filter = st.sidebar.multiselect(
-    "Select Cluster",
-    df["Cluster"].unique(),
-    default=df["Cluster"].unique()
-)
+# Scale bubble size
+df["radius"] = df["Grand Total"] * 80  # adjust multiplier if needed
 
-filtered_df = df[
-    (df["Engine Type"].isin(engine_filter)) &
-    (df["Cluster"].isin(cluster_filter))
-].copy()
-
-# Remove rows with missing lat-long
-filtered_df = filtered_df.dropna(subset=["Latitude", "Longitude"])
-
-# Radius scaling
-filtered_df["radius"] = filtered_df["Total Value"] * 3000
-
-# Color mapping
-def color_engine(x):
-    if x == "HHP":
+# Color logic (more HHP = redder, more LHP = bluer)
+def color_logic(row):
+    if row["HHP"] > row["LHP"]:
         return [255, 0, 0, 160]
-    else:
+    elif row["LHP"] > row["HHP"]:
         return [0, 0, 255, 160]
+    else:
+        return [128, 128, 128, 160]
 
-filtered_df["color"] = filtered_df["Engine Type"].apply(color_engine)
+df["color"] = df.apply(color_logic, axis=1)
 
-# Map Layer
+# Layer
 layer = pdk.Layer(
     "ScatterplotLayer",
-    data=filtered_df,
+    data=df,
     get_position='[Longitude, Latitude]',
     get_radius="radius",
     get_fill_color="color",
-    pickable=True
+    pickable=True,
 )
 
 tooltip = {
-    "html": "<b>{Location_Standardized}</b><br/>"
-            "Cluster: {Cluster}<br/>"
-            "Total Value: {Total Value}<br/>"
-            "Engine: {Engine Type}",
+    "html": "<b>{Region}</b><br/>"
+            "HHP: {HHP}<br/>"
+            "LHP: {LHP}<br/>"
+            "Total: {Grand Total}",
 }
 
 view_state = pdk.ViewState(
-    latitude=filtered_df["Latitude"].mean(),
-    longitude=filtered_df["Longitude"].mean(),
-    zoom=6,
+    latitude=df["Latitude"].mean(),
+    longitude=df["Longitude"].mean(),
+    zoom=10,
 )
 
 st.pydeck_chart(pdk.Deck(
